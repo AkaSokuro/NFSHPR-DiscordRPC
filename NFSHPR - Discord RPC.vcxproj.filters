@@ -128,5 +128,8 @@
     <ClInclude Include="lib\discord_game_sdk\voice_manager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

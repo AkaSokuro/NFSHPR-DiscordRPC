@@ -1,5 +1,6 @@
 // @AkaSokuro
 #include "config.h"
+#include "utils.h"
 
 #include <discord_game_sdk/discord.h>
 #include <inireader/INIReader.h>
@@ -60,9 +61,7 @@ void UpdateActivity(const std::string& state, const std::string& details) {
         });
 }
 
-void Update() {
-    INIReader ini(CONFIG_NAME);
-
+void Update(INIReader ini) {
     int gameMode;
     AccessMemory(GAMEPROC_NAME, 0x129C4A8, { 0x67A00 }, &gameMode, sizeof(gameMode));
     std::string gameModeStr;
@@ -96,8 +95,8 @@ void Update() {
     default: lobbyTypeStr = "Public"; break;
     }
 
-    signed int teamId;
-    AccessMemory(GAMEPROC_NAME, 0x129C4A8, { 0x67A38 }, &teamId, sizeof(teamId));
+    signed char teamId;
+    AccessMemory(GAMEPROC_NAME, 0x129C4A8, { 0xDB6A }, &teamId, sizeof(teamId));
     std::string teamStr;
     switch (teamId) {
     case 0: teamStr = "Racer"; break;
@@ -111,6 +110,10 @@ void Update() {
         teamStr = "MW";
     }
 
+    int currentCarId;
+    AccessMemory(GAMEPROC_NAME, 0x0129C4C8, { 0x8, 0x4F0 }, &currentCarId, sizeof(currentCarId));
+    std::string currentCarStr = utils::GetCarName(currentCarId);
+
     int plrSize;
     AccessMemory(GAMEPROC_NAME, 0x1288A58, { 0x8, 0x19640, 0x768, 0x270, 0x8, 0x78, -0x22C8 }, &plrSize, sizeof(plrSize));
 
@@ -120,58 +123,85 @@ void Update() {
     char inWorldOffline;
     AccessMemory(GAMEPROC_NAME, 0x129C498, { 0x118038 }, &inWorldOffline, sizeof(inWorldOffline));
 
-    char plrNameBuffer[16] = {};
-    AccessMemory(GAMEPROC_NAME, 0x01279210, { 0xFD9F }, &plrNameBuffer, sizeof(plrNameBuffer));
-    std::string plrName(plrNameBuffer);
+    int isOnlineEA;
+    AccessMemory(GAMEPROC_NAME, 0x01288A30, { 0x39F60 }, &isOnlineEA, sizeof(isOnlineEA));
 
-    std::string showLobbyType = ini.Get("Config", "ShowLobbyType", "1");
-    std::string showGameMode = ini.Get("Config", "ShowGameMode", "1");
-    std::string showSeries = ini.Get("Config", "ShowCarSeries", "1");
-    std::string showTeam = ini.Get("Config", "ShowRole", "1");
-    std::string showPlayerSize = ini.Get("Config", "ShowPlayerSize", "1");
+    int isDNF;
+    AccessMemory(GAMEPROC_NAME, 0x129C4A8, { 0x12C64 }, &isDNF, sizeof(isDNF));
 
-    if (showLobbyType == "0") { lobbyTypeStr = ""; }
-    if (showGameMode == "0") { gameModeStr = ""; }
-    if (showSeries == "0") { seriesStr = ""; }
-    if (showTeam == "0") { teamStr = ""; }
+    int showLobbyType = ini.GetInteger("Config", "ShowLobbyType", 1);
+    int showGameMode = ini.GetInteger("Config", "ShowGameMode", 1);
+    int showSeries = ini.GetInteger("Config", "ShowCarSeries", 1);
+    int showTeam = ini.GetInteger("Config", "ShowRole", 1);
+    int showPlayerSize = ini.GetInteger("Config", "ShowPlayerSize", 1);
+
+    if (showLobbyType == 0) { lobbyTypeStr = ""; }
+    if (showGameMode == 0) { gameModeStr = ""; }
+    if (showSeries == 0) { seriesStr = ""; }
+    if (showTeam == 0) { teamStr = ""; }
+
+    std::string statusStyle = ini.Get("Config", "StatusStyle", "default");
+
+    std::string state;
+    std::string details;
 
     if (gameMode == 0) {
         activity.GetParty().GetSize().SetCurrentSize(0);
         activity.GetParty().GetSize().SetMaxSize(0);
 
         if (inWorldOffline == 1) {
-            UpdateActivity("Singleplayer Event", "In Game");
+            if (statusStyle == "default") { state = "Online | " + teamStr + " Event"; }
+            if (statusStyle == "burnout") { state = "Online | " + teamStr + " Event"; details = currentCarStr; }
+        } else {
+            if (isOnlineEA == 1) {
+                if (statusStyle == "default") { state = "Online | Autolog"; details = ""; }
+                if (statusStyle == "burnout") { state = "Online | Autolog"; details = ""; }
+            } else {
+                if (statusStyle == "default") { state = "Offline | Autolog"; details = ""; }
+                if (statusStyle == "burnout") { state = "Offline | Autolog"; details = ""; }
+            }
         }
-        else {
-            if (!plrName.empty()) { UpdateActivity("Idle", "In Autolog"); }
-            else { UpdateActivity("Offline - Idle", "In Autolog"); }
-        }
+
+        UpdateActivity(state, details);
         return;
     }
 
-    if (showPlayerSize == "1") {
+    if (showPlayerSize == 1) {
         activity.GetParty().GetSize().SetCurrentSize(plrSize);
         if (gameMode == 529914) { activity.GetParty().GetSize().SetMaxSize(2); }
         else { activity.GetParty().GetSize().SetMaxSize(8); }
     }
 
-    std::string state = lobbyTypeStr;
-    if (!state.empty()) state += " - ";
-    if (inWorld == 0) { state += "In Lobby"; } else { state += "In Game"; }
+    if (statusStyle == "default") {
+        state = lobbyTypeStr;
+        if (!state.empty()) state += " - ";
+        if (inWorld == 0) { state += "In Lobby"; }
+        else { state += "In Game"; }
 
-    std::string details;
-    if (!gameModeStr.empty()) {
-        details += gameModeStr;
+        if (!gameModeStr.empty()) {
+            details += gameModeStr;
+        }
+        if (!seriesStr.empty()) {
+            if (!details.empty()) details += " - ";
+            details += seriesStr;
+        }
+        if (!teamStr.empty()) {
+            if (!details.empty()) details += " : ";
+            details += teamStr;
+        }
     }
-    if (!seriesStr.empty()) {
-        if (!details.empty()) details += " - ";
-        details += seriesStr;
+    else if (statusStyle == "burnout") {
+        state = "Online | " + gameModeStr;
+
+        if (currentCarId != 0) { details = currentCarStr; }
+        if (!details.empty()) { details += " ("; }
+        else { details += "Waiting ("; }
+        details += teamStr + ")";
+        if (isDNF != -1) {
+            if (!details.empty()) { details += " | "; }
+            details += "DNF";
+        }
     }
-    if (!teamStr.empty()) {
-        if (!details.empty()) details += " : ";
-        details += teamStr;
-    }
-    if (details.empty()) { details = "CLASSIFIED"; }
 
     UpdateActivity(state, details);
 }
@@ -180,8 +210,8 @@ DWORD WINAPI MainThread(LPVOID lpParam) {
     INIReader ini(CONFIG_NAME);
     if (ini.ParseError() < 0) { return 0; }
 
-    std::string disableRPC = ini.Get("Config", "DisableRPC", "0");
-    if (disableRPC == "1") { return 0; }
+    int disableRPC = ini.GetInteger("Config", "DisableRPC", 0);
+    if (disableRPC == 1) { return 0; }
 
     auto result = discord::Core::Create(1316417194032238632, DiscordCreateFlags_Default, &core);
     if (result != discord::Result::Ok || !core) {
@@ -195,12 +225,12 @@ DWORD WINAPI MainThread(LPVOID lpParam) {
     activity.GetAssets().SetLargeText(IMG_TXT);
     activity.GetTimestamps().SetStart(time(0));
     activity.SetType(discord::ActivityType::Playing);
-    UpdateActivity("Idle", "In Autolog");
+    UpdateActivity("Booting Game", "");
 
     core->ActivityManager().RegisterSteam(GAME_ID);
 
     while (true) {
-        Update();
+        Update(ini);
         core->RunCallbacks();
         Sleep(UPDATE_INTERVAL);
     }
