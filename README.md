@@ -2,6 +2,8 @@
 
 This mod adds Discord Rich Presence to Need For Speed: Hot Pursuit Remastered
 
+![preview](https://github.com/AkaSokuro/NFSHPR-DiscordRPC/blob/master/assets/Preview.png?raw=true)
+
 ## Installation
 
 1. Get the desired version from the available source.
