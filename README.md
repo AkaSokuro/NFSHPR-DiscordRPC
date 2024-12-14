@@ -16,4 +16,4 @@ You can modify `NFSHPR - Discord RPC.ini` to change the configurations.
 
 ## Credits
 
-- Thanks to **TwinShard** for big help on the project.
+- Thanks to **TwinShard** for the helps on giving me pointers to ingame values
