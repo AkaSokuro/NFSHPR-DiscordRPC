@@ -149,17 +149,22 @@ void Update(INIReader ini) {
         activity.GetParty().GetSize().SetCurrentSize(0);
         activity.GetParty().GetSize().SetMaxSize(0);
 
+        if (isOnlineEA == 1) {
+            if (statusStyle == "default") { state = "Online | "; }
+            if (statusStyle == "burnout") { state = "Online | "; }
+        }
+        else {
+            if (statusStyle == "default") { state = "Offline | "; }
+            if (statusStyle == "burnout") { state = "Offline | "; }
+        }
+
+
         if (inWorldOffline == 1) {
-            if (statusStyle == "default") { state = "Online | " + teamStr + " Event"; }
-            if (statusStyle == "burnout") { state = "Online | " + teamStr + " Event"; details = currentCarStr; }
+            if (statusStyle == "default") { state += teamStr + " Event"; }
+            if (statusStyle == "burnout") { state += teamStr + " Event"; details = currentCarStr; }
         } else {
-            if (isOnlineEA == 1) {
-                if (statusStyle == "default") { state = "Online | Autolog"; details = ""; }
-                if (statusStyle == "burnout") { state = "Online | Autolog"; details = ""; }
-            } else {
-                if (statusStyle == "default") { state = "Offline | Autolog"; details = ""; }
-                if (statusStyle == "burnout") { state = "Offline | Autolog"; details = ""; }
-            }
+            if (statusStyle == "default") { state += "Autolog"; }
+            if (statusStyle == "burnout") { state += "Autolog"; }
         }
 
         UpdateActivity(state, details);
