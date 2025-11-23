@@ -1,5 +1,9 @@
 # NFS:HPR - Discord RPC
 
+⭐ <a href="https://github.com/AkaSokuro/NFSHPR-DiscordRPC-Rework">New Rework</a> with a lot of fixes and improvements has released.
+
+---
+
 This mod adds Discord Rich Presence to Need For Speed: Hot Pursuit Remastered
 
 ![preview](https://github.com/AkaSokuro/NFSHPR-DiscordRPC/blob/master/assets/Preview.png?raw=true)
